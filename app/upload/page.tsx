@@ -93,29 +93,27 @@ export default function UploadPage() {
             // Calculate tokens from your rule function
             const tokens = calculateTokensFromBytes(file.size, file.type);
 
-            // Save metadata
-            const response = await fetch('/api/uploads', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: user.id, // 🎯 REAL USER ID HERE
+            // Save metadata directly to Supabase (Client-side insert)
+            const { data: upload, error: dbError } = await supabase
+                .from('uploads')
+                .insert({
+                    user_id: user.id,
                     file_name: file.name,
                     file_type: file.type,
                     file_size: file.size,
                     storage_path: storageData.path,
                     tokens_earned: tokens,
-                }),
-            });
+                    status: 'pending'
+                })
+                .select()
+                .single();
 
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Failed to save metadata');
+            if (dbError) {
+                throw new Error(dbError.message);
             }
 
-            const result = await response.json();
-
             setUploadedFile({
-                ...result.upload,
+                ...upload,
                 tokens,
                 file,
             });
@@ -149,8 +147,8 @@ export default function UploadPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     className={`border-4 border-dashed rounded-2xl p-12 text-center transition-all ${isDragging
-                            ? 'border-purple-500 bg-purple-50 scale-105'
-                            : 'border-gray-300 bg-white hover:border-purple-400'
+                        ? 'border-purple-500 bg-purple-50 scale-105'
+                        : 'border-gray-300 bg-white hover:border-purple-400'
                         }`}
                 >
                     <div className="space-y-4">

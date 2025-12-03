@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Upload {
     id: string;
@@ -28,11 +29,15 @@ export default function MarketplacePage() {
 
     const fetchApprovedUploads = async () => {
         try {
-            const response = await fetch('/api/uploads');
-            const data = await response.json();
-            // Filter only approved uploads
-            const approved = (data.uploads || []).filter((u: Upload) => u.status === 'approved');
-            setUploads(approved);
+            const { data, error } = await supabase
+                .from('uploads')
+                .select('*')
+                .eq('status', 'approved')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            setUploads(data || []);
         } catch (error) {
             console.error('Failed to fetch uploads:', error);
         } finally {
