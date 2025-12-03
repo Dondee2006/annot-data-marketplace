@@ -16,29 +16,47 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    // Get token from cookies
-    const token = req.cookies.get('sb-access-token');
+    // Get Supabase auth token from cookies
+    // Supabase stores tokens in cookies with pattern: sb-<project-ref>-auth-token
+    const allCookies = req.cookies.getAll();
+    const authCookie = allCookies.find(cookie =>
+        cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
+    );
 
-    if (!token) {
+    if (!authCookie) {
         const loginUrl = new URL('/login', req.url);
         return NextResponse.redirect(loginUrl);
+    }
+
+    // Parse the auth token
+    let accessToken: string | null = null;
+    try {
+        const cookieValue = JSON.parse(authCookie.value);
+        accessToken = cookieValue.access_token || cookieValue[0]; // Handle different formats
+    } catch {
+        // If parsing fails, redirect to login
+        return NextResponse.redirect(new URL('/login', req.url));
+    }
+
+    if (!accessToken) {
+        return NextResponse.redirect(new URL('/login', req.url));
     }
 
     // For admin routes, verify user is admin
     if (adminRoutes.some((route) => pathname.startsWith(route))) {
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            global: { headers: { Authorization: `Bearer ${token.value}` } },
+            global: { headers: { Authorization: `Bearer ${accessToken}` } },
         });
 
         try {
             // Get current user
-            const { data: { user } } = await supabase.auth.getUser(token.value);
+            const { data: { user } } = await supabase.auth.getUser(accessToken);
 
             if (!user) {
                 return NextResponse.redirect(new URL('/login', req.url));
             }
 
-            // Check if user exists in 'admins' table
+            // Check if user exists in 'admins' table (optional - comment out if not using)
             const { data: adminData, error } = await supabase
                 .from('admins')
                 .select('user_id')
@@ -46,8 +64,8 @@ export async function middleware(req: NextRequest) {
                 .single();
 
             if (error || !adminData) {
-                // Not an admin → redirect
-                return NextResponse.redirect(new URL('/login', req.url));
+                // Not an admin → redirect to home instead of login
+                return NextResponse.redirect(new URL('/', req.url));
             }
 
         } catch (err) {
@@ -63,3 +81,4 @@ export async function middleware(req: NextRequest) {
 export const config = {
     matcher: ['/upload/:path*', '/admin/:path*'],
 };
+
