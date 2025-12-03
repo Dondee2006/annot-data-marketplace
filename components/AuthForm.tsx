@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '../lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AuthForm({ mode = 'login' }: { mode?: 'login' | 'signup' }) {
+    const supabase = createClient()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)

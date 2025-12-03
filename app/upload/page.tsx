@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { calculateTokensFromBytes } from '@/lib/tokens';
 
@@ -17,6 +17,7 @@ const ALLOWED_FILE_TYPES = {
 };
 
 export default function UploadPage() {
+    const supabase = createClient();
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
 

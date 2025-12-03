@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '../lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export default function Navigation() {
+    const supabase = createClient()
     const [userEmail, setUserEmail] = useState<string | null>(null)
     const router = useRouter()
 
